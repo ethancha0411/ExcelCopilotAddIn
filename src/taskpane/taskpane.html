@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Excel Copilot Add-in</title>
+
+    <!-- Office JavaScript API -->
+    <script
+      type="text/javascript"
+      src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
+    ></script>
+
+    <!-- For more information on Fluent UI, visit https://developer.microsoft.com/fluentui#/. -->
+    <link
+      rel="stylesheet"
+      href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css"
+    />
+
+    <!-- Template styles -->
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body class="ms-font-m ms-Fabric">
+    <main id="app-body" class="ms-welcome__main">
+      <h2 class="ms-font-xl">Data Verifier</h2>
+      <p class="ms-font-l">Verify selected Excel data against a PDF document.</p>
+
+      <div class="ms-Grid" dir="ltr">
+        <div class="ms-Grid-row" style="margin-bottom: 10px">
+          <div class="ms-Grid-col ms-sm12">
+            <div class="ms-TextField">
+              <label class="ms-Label">Gemini API Key</label>
+              <input
+                class="ms-TextField-field"
+                type="password"
+                id="api-key"
+                placeholder="Enter your API key"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-Grid-row" style="margin-bottom: 10px">
+          <div class="ms-Grid-col ms-sm12">
+            <div class="ms-TextField ms-TextField--multiline">
+              <label class="ms-Label">1. PDF Parsing Prompt</label>
+              <textarea
+                class="ms-TextField-field"
+                id="parse-prompt"
+                rows="3"
+                placeholder="e.g., Extract invoice number, date, and total."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-Grid-row" style="margin-bottom: 10px">
+          <div class="ms-Grid-col ms-sm12">
+            <div class="ms-TextField ms-TextField--multiline">
+              <label class="ms-Label">2. Comparison Prompt</label>
+              <textarea
+                class="ms-TextField-field"
+                id="compare-prompt"
+                rows="3"
+                placeholder="e.g., Compare the extracted invoice total with the 'Amount' column in my selection."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-Grid-row" style="margin-bottom: 10px">
+          <div class="ms-Grid-col ms-sm12">
+            <label class="ms-Label">PDF File</label>
+            <input type="file" id="pdf-upload" accept="application/pdf" class="ms-Button" />
+          </div>
+        </div>
+
+        <div class="ms-Grid-row">
+          <div class="ms-Grid-col ms-sm12">
+            <button id="verify-button" class="ms-Button ms-Button--primary">
+              <span class="ms-Button-label">Verify Selected Data</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" style="margin-top: 10px"></div>
+    </main>
+  </body>
+</html>
