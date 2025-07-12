@@ -1,9 +1,4 @@
-/*
- * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
- * See LICENSE in the project root for license information.
- */
-
-/* global console, document, Excel, Office */
+/* global console, document, Excel, Office, FileReader */
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 Office.onReady((info) => {
@@ -54,7 +49,8 @@ Return a well-structured JSON object that captures all the meaningful data from 
 The JSON should be easily comparable with Excel spreadsheet data.`;
     }
     if (!comparePrompt.trim()) {
-      comparePrompt = "Compare the data from the PDF (Dataset 1) with the data from Excel (Dataset 2). Match the keys from the PDF data to the header columns in the Excel data, ignoring case and special characters. Identify any cells in the Excel data that do not match the corresponding PDF data.";
+      comparePrompt =
+        "Compare the data from the PDF (Dataset 1) with the data from Excel (Dataset 2). Match the keys from the PDF data to the header columns in the Excel data, ignoring case and special characters. Identify any cells in the Excel data that do not match the corresponding PDF data.";
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -87,7 +83,7 @@ The JSON should be easily comparable with Excel spreadsheet data.`;
         selectedRange.format.fill.clear();
         await context.sync();
 
-        mismatches.forEach(mismatch => {
+        mismatches.forEach((mismatch) => {
           if (mismatch.row < excelData.length && mismatch.col < excelData[0].length) {
             const cell = selectedRange.getCell(mismatch.row, mismatch.col);
             cell.format.fill.color = "red";
@@ -123,18 +119,18 @@ async function writeDataToNewSheet(context, pdfFileName, data) {
   } else {
     sheet.getUsedRange().clear();
   }
-  
+
   const headers = [["Key", "Value"]];
   // Convert the data object to an array of [key, value] pairs,
   // ensuring that any nested objects are stringified to prevent Excel errors.
   const dataRows = Object.entries(data).map(([key, value]) => {
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value === "object" && value !== null) {
       // Stringify nested objects/arrays for clean insertion into a cell
       return [key, JSON.stringify(value, null, 2)];
     }
     return [key, value];
   });
-  
+
   const headerRange = sheet.getRange("A1:B1");
   headerRange.values = headers;
   headerRange.format.font.bold = true;
@@ -151,7 +147,7 @@ async function writeDataToNewSheet(context, pdfFileName, data) {
 async function fileToGenerativePart(file) {
   const base64EncodedData = await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -164,17 +160,22 @@ async function callGeminiParse(genAI, pdfFile, prompt) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   const imagePart = await fileToGenerativePart(pdfFile);
   const fullPrompt = `${prompt}. Respond with only the JSON object, without any markdown formatting.`;
-  
+
   const result = await model.generateContent([fullPrompt, imagePart]);
   const response = await result.response;
   const text = response.text();
-  
+
   try {
-    const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
     return JSON.parse(cleanedText);
-  } catch (e) {
-    console.error("Failed to parse JSON from Gemini response:", text);
-    throw new Error("Could not parse structured data from the PDF. The LLM returned an invalid format.");
+  } catch (error) {
+    console.error("Failed to parse JSON from Gemini response:", error, text);
+    throw new Error(
+      "Could not parse structured data from the PDF. The LLM returned an invalid format."
+    );
   }
 }
 
@@ -205,10 +206,13 @@ async function callGeminiCompare(genAI, pdfData, excelData, prompt) {
   const text = response.text();
 
   try {
-    const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
     return JSON.parse(cleanedText);
-  } catch (e) {
-    console.error("Failed to parse JSON from Gemini comparison response:", text);
+  } catch (error) {
+    console.error("Failed to parse JSON from Gemini comparison response:", error, text);
     throw new Error("Could not parse comparison results. The LLM returned an invalid format.");
   }
 }

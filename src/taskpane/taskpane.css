@@ -1,105 +1,103 @@
-/*
- * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
- */
-
 /* 
   The following styles are adapted from the Fluent UI theme variables to make the add-in theme-aware.
   This ensures the add-in looks good in all Office themes, including dark mode.
 */
 
 :root {
-    --text-color: var(--office-text-color, #333333);
-    --background-color: var(--office-body-background-color, #ffffff);
-    --input-border-color: var(--office-text-color, #cccccc);
-    --input-background-color: var(--office-body-background-color, #ffffff);
-    --button-primary-background: var(--office-button-primary-background-color, #0078d4);
-    --button-primary-text: var(--office-button-primary-text-color, #ffffff);
+  --text-color: var(--office-text-color, #333333);
+  --background-color: var(--office-body-background-color, #ffffff);
+  --input-border-color: var(--office-text-color, #cccccc);
+  --input-background-color: var(--office-body-background-color, #ffffff);
+  --button-primary-background: var(--office-button-primary-background-color, #0078d4);
+  --button-primary-text: var(--office-button-primary-text-color, #ffffff);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-    font-size: 14px;
-    color: var(--text-color);
-    background-color: var(--background-color);
-    margin: 0;
-    padding: 15px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  margin: 0;
+  padding: 15px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 .ms-welcome__main {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 .ms-font-xl {
-    font-size: 24px;
-    font-weight: 600;
-    margin-top: 0;
-    margin-bottom: 10px;
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 .ms-font-l {
-    font-size: 16px;
-    margin-bottom: 20px;
+  font-size: 16px;
+  margin-bottom: 20px;
 }
 
 .ms-Grid {
-    width: 100%;
+  width: 100%;
 }
 
 .ms-Grid-row {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 .ms-Label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
 }
 
 .ms-TextField-field,
 .ms-TextField-field:focus {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-    border: 1px solid var(--input-border-color);
-    background-color: var(--input-background-color);
-    color: var(--text-color);
-    outline: none;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border-color);
+  background-color: var(--input-background-color);
+  color: var(--text-color);
+  outline: none;
 }
 
 .ms-TextField-field:focus {
-    border-color: var(--button-primary-background);
+  border-color: var(--button-primary-background);
 }
 
 .ms-TextField--multiline .ms-TextField-field {
-    resize: vertical;
-    min-height: 60px;
+  resize: vertical;
+  min-height: 60px;
 }
 
 .ms-Button {
-    border: 1px solid var(--input-border-color);
-    background-color: var(--input-background-color);
-    color: var(--text-color);
-    padding: 8px 12px;
-    cursor: pointer;
-    display: block;
-    width: 100%;
-    text-align: left;
+  border: 1px solid var(--input-border-color);
+  background-color: var(--input-background-color);
+  color: var(--text-color);
+  padding: 8px 12px;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 
 .ms-Button--primary {
-    background-color: var(--button-primary-background);
-    color: var(--button-primary-text);
-    border: none;
-    text-align: center;
+  background-color: var(--button-primary-background);
+  color: var(--button-primary-text);
+  border: none;
+  text-align: center;
 }
 
 #status {
-    margin-top: 20px;
-    font-weight: bold;
+  margin-top: 20px;
+  font-weight: bold;
 }
