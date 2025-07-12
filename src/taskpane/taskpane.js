@@ -19,13 +19,21 @@ async function verifyData() {
 
   try {
     // --- 1. Get all inputs from the user ---
-    const apiKey = document.getElementById("api-key").value;
+    let apiKey = document.getElementById("api-key").value;
     let parsePrompt = document.getElementById("parse-prompt").value;
     let comparePrompt = document.getElementById("compare-prompt").value;
     const pdfFile = document.getElementById("pdf-upload").files[0];
 
+    // Note: API key should be provided via UI - environment variables are not available in browser context
+    if (!apiKey) {
+      console.log("No API key provided via UI");
+    }
+
     if (!apiKey || !pdfFile) {
-      status.textContent = "Please provide a Gemini API key and select a PDF file.";
+      const missingItems = [];
+      if (!apiKey) missingItems.push("Gemini API key");
+      if (!pdfFile) missingItems.push("PDF file");
+      status.textContent = `Please provide: ${missingItems.join(" and ")}.`;
       return;
     }
 
@@ -77,12 +85,13 @@ The JSON should be easily comparable with Excel spreadsheet data.`;
       const mismatches = await callGeminiCompare(genAI, pdfData, excelData, comparePrompt);
       status.textContent = "Step 3: Comparison complete.";
 
-      // --- 6. Highlight mismatched cells ---
+      // --- 6. Highlight mismatched cells and add comments ---
       if (mismatches && mismatches.length > 0) {
         status.textContent = `Step 4: Highlighting ${mismatches.length} mismatch(es)...`;
         selectedRange.format.fill.clear();
         await context.sync();
 
+        // First, highlight all mismatched cells
         mismatches.forEach((mismatch) => {
           if (mismatch.row < excelData.length && mismatch.col < excelData[0].length) {
             const cell = selectedRange.getCell(mismatch.row, mismatch.col);
@@ -90,7 +99,36 @@ The JSON should be easily comparable with Excel spreadsheet data.`;
           }
         });
         await context.sync();
-        status.textContent = `Verification complete. Found ${mismatches.length} mismatch(es).`;
+
+        // Then, add comments to each mismatched cell individually
+        // Process comments in batches to improve performance
+        const validMismatches = mismatches.filter(
+          (mismatch) =>
+            mismatch.row < excelData.length &&
+            mismatch.col < excelData[0].length &&
+            mismatch.expectedValue !== undefined &&
+            mismatch.actualValue !== undefined
+        );
+
+        for (const mismatch of validMismatches) {
+          try {
+            const commentText = `Mismatch Found:\nExpected: ${mismatch.expectedValue}\nActual: ${mismatch.actualValue}`;
+            // Add comment using the workbook's comments collection with the cell range
+            const cell = selectedRange.getCell(mismatch.row, mismatch.col);
+            context.workbook.comments.add(cell, commentText);
+          } catch (commentError) {
+            console.warn(
+              `Failed to add comment to cell (${mismatch.row}, ${mismatch.col}):`,
+              commentError.message
+            );
+            // Continue with other comments even if one fails
+          }
+        }
+
+        // Single context.sync() call after all comments are added
+        await context.sync();
+
+        status.textContent = `Verification complete. Found ${mismatches.length} mismatch(es). Hover over red cells to see expected values.`;
       } else {
         status.textContent = "Verification complete. No mismatches found.";
       }
@@ -191,7 +229,11 @@ async function callGeminiCompare(genAI, pdfData, excelData, prompt) {
     5.  Compare the values for each corresponding row.
     6.  Identify any cells in Dataset 2 that do not match the corresponding value in Dataset 1.
     7.  Return a JSON array of objects, where each object represents a single mismatched cell in Dataset 2.
-    8.  Each object in the array must have two keys: "row" (the 0-based row index of the mismatch in Dataset 2) and "col" (the 0-based column index).
+    8.  Each object in the array must have four keys: 
+        - "row" (the 0-based row index of the mismatch in Dataset 2)
+        - "col" (the 0-based column index)
+        - "expectedValue" (the correct value from Dataset 1)
+        - "actualValue" (the incorrect value found in Dataset 2)
     9.  If there are no mismatches, return an empty array [].
     10. Respond with ONLY the JSON array, without any explanation or markdown formatting.
     **Dataset 1 (from PDF):**

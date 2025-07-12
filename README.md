@@ -27,6 +27,13 @@ This Excel add-in uses the power of Google's Gemini models to automate the tedio
     ```bash
     npm install
     ```
+4.  **Set up environment variables (recommended):**
+    - Copy `.env.example` to `.env`:
+      ```bash
+      cp .env.example .env
+      ```
+    - Open `.env` and replace `your_gemini_api_key_here` with your actual Gemini API key
+    - Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 
 ## Running the Add-in
 
@@ -46,7 +53,10 @@ This Excel add-in uses the power of Google's Gemini models to automate the tedio
 
 1.  **Prepare Your Excel Data**: Create a table in your worksheet that corresponds to the data in your PDF document.
 2.  **Open the Add-in**: Go to the **Home** tab in the Excel ribbon and click the **Data Verifier** button to open the task pane.
-3.  **Enter Your API Key**: Paste your Gemini API key into the first input field. You can get a key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+3.  **API Key Setup**: 
+    - **Option 1 (Recommended)**: Set up your API key in the `.env` file during installation - the add-in will automatically use it
+    - **Option 2**: Manually enter your API key in the task pane input field each time
+    - You can get a key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 4.  **Provide Prompts (Optional)**:
     - **PDF Parsing Prompt**: You can provide specific instructions for extracting data from the PDF. If you leave this blank, a general-purpose extraction prompt will be used.
     - **Comparison Prompt**: You can specify how the PDF data should be compared to the Excel columns. If left blank, a default comparison logic will be used.

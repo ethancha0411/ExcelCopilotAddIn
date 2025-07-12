@@ -31,13 +31,16 @@
         <div class="ms-Grid-row" style="margin-bottom: 10px">
           <div class="ms-Grid-col ms-sm12">
             <div class="ms-TextField">
-              <label class="ms-Label">Gemini API Key</label>
+              <label class="ms-Label">Gemini API Key (optional if set in .env file)</label>
               <input
                 class="ms-TextField-field"
                 type="password"
                 id="api-key"
-                placeholder="Enter your API key"
+                placeholder="Enter your API key or leave blank to use .env file"
               />
+              <div class="ms-font-s" style="color: #666; margin-top: 4px">
+                Tip: Set GEMINI_API_KEY in your .env file to avoid entering it each time
+              </div>
             </div>
           </div>
         </div>
