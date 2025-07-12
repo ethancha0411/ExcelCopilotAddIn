@@ -7,6 +7,9 @@ This Excel add-in uses the power of Google's Gemini models to automate the tedio
 - **Intelligent PDF Parsing**: Uses the `gemini-2.5-flash` model to extract structured data from PDF documents.
 - **Automated Data Comparison**: Leverages a Gemini text model to intelligently compare the extracted PDF data against your selected Excel data.
 - **Mismatch Highlighting**: Automatically colors the cells in your selection that contain data inconsistent with the PDF.
+- **Enhanced Comment System**: Adds detailed comments to mismatched cells showing both expected and actual values for easy comparison.
+- **Environment Variable Support**: Securely store your Gemini API key in a `.env` file to avoid entering it manually each time.
+- **Flexible API Key Management**: Choose between using environment variables or manual entry for your API key.
 - **Parsed Data Output**: Creates a new worksheet containing the structured data extracted from the PDF for your review.
 - **Theme-Aware UI**: The user interface adapts to your Office theme, including full support for dark mode.
 - **Customizable Prompts**: While the add-in provides effective default prompts, you can provide your own instructions to guide the parsing and comparison logic.
