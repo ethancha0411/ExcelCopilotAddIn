@@ -18,6 +18,7 @@ This Excel add-in uses the power of Google's Gemini models to automate the tedio
 
 - [Node.js](https://nodejs.org/) and npm
 - Microsoft Excel (for Windows or macOS, compatible with Office Add-ins)
+- Office 365 Subscription
 
 ## Installation
 
