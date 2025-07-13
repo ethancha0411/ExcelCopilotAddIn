@@ -352,6 +352,12 @@ ${JSON.stringify(templateData, null, 2)}
 
 **TEMPLATE RANGE ADDRESS:** ${templateAddress}
 
+🔴 **CRITICAL RULE: VALUE LOCATION CANNOT BE IDENTICAL TO FIELD LOCATION** 🔴
+- The valueLocation MUST be different from fieldLocation
+- Values should be placed in ADJACENT cells, NOT on top of field names
+- Field names must be preserved and never overwritten
+- This is the most important rule to prevent data corruption
+
 **CRITICAL COORDINATE SYSTEM RULES:**
 🔴 **IMPORTANT**: All row and column indices must be 0-based and RELATIVE to the template data array provided above.
 - The template data array starts at index [0][0] (first row, first column)
@@ -368,6 +374,12 @@ ${JSON.stringify(templateData, null, 2)}
    - **description**: Brief description of what this field represents
    - **dataType**: Expected data type ("string", "number", "date", "boolean")
 
+**VALUE PLACEMENT LOGIC:**
+🔴 **MANDATORY**: valueLocation MUST be different from fieldLocation
+- **Vertical Templates**: Values go in the next column (col + 1) from the field name
+- **Horizontal Templates**: Values go in the next row (row + 1) from the field header
+- **NEVER place values on the same position as field names**
+
 **COORDINATE SYSTEM EXAMPLES:**
 
 **Vertical Template Example:**
@@ -382,45 +394,54 @@ If the template data array is:
 \`\`\`
 
 Then the correct analysis would be:
-- "Property Name": fieldLocation={row:1,col:0}, valueLocation={row:1,col:1}
-- "Property Address": fieldLocation={row:2,col:0}, valueLocation={row:2,col:1}
-- "Total Due": fieldLocation={row:3,col:0}, valueLocation={row:3,col:1}
+- "Property Name": fieldLocation={row:1,col:0}, valueLocation={row:1,col:1} ✅ DIFFERENT
+- "Property Address": fieldLocation={row:2,col:0}, valueLocation={row:2,col:1} ✅ DIFFERENT
+- "Total Due": fieldLocation={row:3,col:0}, valueLocation={row:3,col:1} ✅ DIFFERENT
+
+**INCORRECT Example (DO NOT DO THIS):**
+- "Property Name": fieldLocation={row:1,col:0}, valueLocation={row:1,col:0} ❌ SAME LOCATION - FORBIDDEN
 
 **Horizontal Template Example:**
 If the template data array is:
 \`\`\`
 [
-  ["Property Name", "Property Address", "Total Due"],  <- Array row 0
-  ["", "", ""],                                        <- Array row 1
-  ["", "", ""]                                         <- Array row 2
+  ["Property Name", "Property Address", "Total Due"],  <- Array row 0 (headers)
+  ["", "", ""],                                        <- Array row 1 (values go here)
+  ["", "", ""]                                         <- Array row 2 (additional rows)
 ]
 \`\`\`
 
 Then the correct analysis would be:
-- "Property Name": fieldLocation={row:0,col:0}, valueLocation={row:1,col:0}
-- "Property Address": fieldLocation={row:0,col:1}, valueLocation={row:1,col:1}
-- "Total Due": fieldLocation={row:0,col:2}, valueLocation={row:1,col:2}
+- "Property Name": fieldLocation={row:0,col:0}, valueLocation={row:1,col:0} ✅ DIFFERENT (next row)
+- "Property Address": fieldLocation={row:0,col:1}, valueLocation={row:1,col:1} ✅ DIFFERENT (next row)
+- "Total Due": fieldLocation={row:0,col:2}, valueLocation={row:1,col:2} ✅ DIFFERENT (next row)
+
+**INCORRECT Example (DO NOT DO THIS):**
+- "Property Name": fieldLocation={row:0,col:0}, valueLocation={row:0,col:0} ❌ SAME LOCATION - FORBIDDEN
 
 **ANALYSIS RULES:**
 - Skip header rows that contain generic labels like "Field", "Value", "Header", etc.
 - Look for actual field names that describe data (Property Name, Tenant Name, etc.)
-- For vertical templates, values typically go in the column next to the field name
-- For horizontal templates, values typically go in rows below the field headers
+- For vertical templates, values typically go in the column next to the field name (same row, next column)
+- For horizontal templates, values typically go in rows below the field headers (next row, same column)
 - Ignore empty cells or cells with just whitespace
 - Infer data types from field names (e.g., "Date" = date, "Amount" = number, "Name" = string)
 - ALL POSITIONS MUST BE RELATIVE TO THE TEMPLATE DATA ARRAY (0-based indices)
+- **CRITICAL**: ALWAYS ensure valueLocation != fieldLocation to prevent overwriting field names
 
 **VALIDATION CHECKS:**
 - Ensure all row indices are between 0 and ${templateData.length - 1}
 - Ensure all column indices are between 0 and ${templateData[0]?.length - 1 || 0}
 - fieldLocation and valueLocation must be valid array indices
+- **MANDATORY**: fieldLocation and valueLocation must be DIFFERENT positions
+- Values should be placed logically adjacent to field names, not on top of them
 
 **EXPECTED OUTPUT:**
 Return a JSON object with:
 - "orientation": "vertical" or "horizontal"
 - "fields": Array of field objects with the structure defined above
 
-Analyze the template carefully and provide comprehensive field information with correct relative positioning.
+Analyze the template carefully and provide comprehensive field information with correct relative positioning, ensuring values never overwrite field names.
 `;
 
   const result = await model.generateContent({
@@ -461,6 +482,19 @@ Analyze the template carefully and provide comprehensive field information with 
     console.log(`  fieldLocation: {row:${fieldLocation.row}, col:${fieldLocation.col}}`);
     console.log(`  valueLocation: {row:${valueLocation.row}, col:${valueLocation.col}}`);
 
+    // 🔴 CRITICAL: Validate that valueLocation is different from fieldLocation
+    if (fieldLocation.row === valueLocation.row && fieldLocation.col === valueLocation.col) {
+      console.error(
+        `❌ CRITICAL ERROR: Field "${field.fieldName}" has identical fieldLocation and valueLocation!`
+      );
+      console.error(
+        `This would overwrite the field name with data. fieldLocation and valueLocation must be different.`
+      );
+      throw new Error(
+        `Field "${field.fieldName}" has invalid configuration: valueLocation {row:${valueLocation.row}, col:${valueLocation.col}} is identical to fieldLocation {row:${fieldLocation.row}, col:${fieldLocation.col}}. Values cannot be placed on top of field names. This would overwrite the field name and corrupt the template.`
+      );
+    }
+
     // Validate field location
     if (
       fieldLocation.row < 0 ||
@@ -490,7 +524,10 @@ Analyze the template carefully and provide comprehensive field information with 
         `Field ${index} (${field.fieldName}) has invalid valueLocation: {row:${valueLocation.row}, col:${valueLocation.col}}. Must be within bounds [0-${maxRow}, 0-${maxCol}]. Template data has ${templateData.length} rows and ${templateData[0]?.length || 0} columns.`
       );
     }
+
+    console.log(`  ✅ Field validation passed - locations are different and within bounds`);
   });
 
+  console.log("✅ All fields validated successfully - no field/value location conflicts detected");
   return parsedResponse;
 }

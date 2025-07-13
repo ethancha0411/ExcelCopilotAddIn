@@ -181,86 +181,87 @@ async function populateHorizontalTemplate(
   console.log("🔍 PopulateHorizontalTemplate Debug Info:");
   console.log("Data to populate:", validatedData);
 
-  // For horizontal templates, we add rows of data below the headers
-  // PROGRAMMATICALLY determine where values should go (ignore LLM's valueLocation)
+  // NEW APPROACH: Use LLM's valueLocation suggestions with validation
+  console.log("🎯 Using LLM's valueLocation suggestions for horizontal template");
 
-  // Find the header row (assume it's the first row with field names)
-  let headerRowIndex = 0;
-
-  // Look for the row that contains the most field names
-  for (let row = 0; row < templateRange.rowCount; row++) {
-    const rowValues = templateRange.values[row] || [];
-    const matchingFields = templateStructure.fields.filter((field) => {
-      return rowValues.some(
-        (cellValue) =>
-          cellValue && cellValue.toString().toLowerCase().includes(field.fieldName.toLowerCase())
-      );
-    });
-
-    if (matchingFields.length > headerRowIndex) {
-      headerRowIndex = row;
-    }
-  }
-
-  console.log(`Header row identified at template row index: ${headerRowIndex}`);
-
-  // The data should start in the row immediately BELOW the header row
-  const dataStartRow = templateRange.rowIndex + headerRowIndex + 1;
-
-  console.log(`Data will be populated starting at absolute row: ${dataStartRow}`);
-
-  // Create a mapping of field names to their column positions in the header row
-  const fieldToColumnMap = new Map();
+  // Create a mapping of field names to their LLM-suggested value locations
+  const fieldToLocationMap = new Map();
 
   templateStructure.fields.forEach((field) => {
-    // Find which column this field is in based on the header row
-    const headerRow = templateRange.values[headerRowIndex] || [];
-
-    for (let col = 0; col < headerRow.length; col++) {
-      const cellValue = headerRow[col];
-      if (cellValue && cellValue.toString().toLowerCase().includes(field.fieldName.toLowerCase())) {
-        const absoluteCol = templateRange.columnIndex + col;
-        fieldToColumnMap.set(field.fieldName, absoluteCol);
-        console.log(
-          `Field "${field.fieldName}" mapped to column ${absoluteCol} (Excel col ${String.fromCharCode(65 + absoluteCol)})`
-        );
-        break;
-      }
+    // Validate that the LLM provided different locations for field and value
+    if (
+      field.fieldLocation.row === field.valueLocation.row &&
+      field.fieldLocation.col === field.valueLocation.col
+    ) {
+      console.error(
+        `❌ CRITICAL: Field "${field.fieldName}" has identical fieldLocation and valueLocation!`
+      );
+      throw new Error(
+        `Field "${field.fieldName}" has invalid LLM configuration: valueLocation cannot be identical to fieldLocation. This would overwrite the field name.`
+      );
     }
+
+    // Convert relative positions to absolute worksheet positions
+    const absoluteValueRow = templateRange.rowIndex + field.valueLocation.row;
+    const absoluteValueCol = templateRange.columnIndex + field.valueLocation.col;
+
+    fieldToLocationMap.set(field.fieldName, {
+      row: absoluteValueRow,
+      col: absoluteValueCol,
+      relativeRow: field.valueLocation.row,
+      relativeCol: field.valueLocation.col,
+    });
+
+    console.log(`Field "${field.fieldName}":`);
+    console.log(
+      `  - LLM valueLocation: {row:${field.valueLocation.row}, col:${field.valueLocation.col}} (relative)`
+    );
+    console.log(`  - Absolute position: {row:${absoluteValueRow}, col:${absoluteValueCol}}`);
+    console.log(
+      `  - Excel address: ${String.fromCharCode(65 + absoluteValueCol)}${absoluteValueRow + 1}`
+    );
   });
 
-  console.log("Field to column mapping:", Array.from(fieldToColumnMap.entries()));
+  console.log("Field to LLM location mapping:", Array.from(fieldToLocationMap.entries()));
 
-  // Now populate each data row
+  // For horizontal templates, we typically populate multiple rows of data
+  // We'll use the LLM's suggested value locations for the first row, then increment rows for additional data
   for (let dataRowIndex = 0; dataRowIndex < validatedData.length; dataRowIndex++) {
     const dataObject = validatedData[dataRowIndex];
-    const targetRowIndex = dataStartRow + dataRowIndex;
 
-    console.log(`\nPopulating data row ${dataRowIndex} at absolute row ${targetRowIndex}:`);
+    console.log(`\nPopulating data row ${dataRowIndex}:`);
 
-    // Populate each field in this row
-    for (const [fieldName, columnIndex] of fieldToColumnMap) {
+    // Populate each field in this row using LLM suggestions
+    for (const [fieldName, locationInfo] of fieldToLocationMap) {
       const value = dataObject[fieldName];
       const sanitizedValue = sanitizeValueForExcel(value);
 
+      // For additional data rows, offset the row position while keeping column from LLM
+      const targetRow = locationInfo.row + dataRowIndex;
+      const targetCol = locationInfo.col;
+
       try {
-        const cell = templateRange.worksheet.getCell(targetRowIndex, columnIndex);
+        const cell = templateRange.worksheet.getCell(targetRow, targetCol);
         cell.values = [[sanitizedValue]];
 
-        const excelAddress = `${String.fromCharCode(65 + columnIndex)}${targetRowIndex + 1}`;
-        console.log(`  ✅ ${fieldName}: "${sanitizedValue}" → ${excelAddress}`);
+        const excelAddress = `${String.fromCharCode(65 + targetCol)}${targetRow + 1}`;
+        console.log(`  ✅ ${fieldName}: "${sanitizedValue}" → ${excelAddress} (LLM-guided)`);
       } catch (error) {
         console.error(
-          `  ❌ Failed to populate ${fieldName} at (${targetRowIndex}, ${columnIndex}):`,
+          `  ❌ Failed to populate ${fieldName} at LLM-suggested location (${targetRow}, ${targetCol}):`,
           error
         );
-        throw new Error(`Failed to populate field "${fieldName}": ${error.message}`);
+        throw new Error(
+          `Failed to populate field "${fieldName}" using LLM location: ${error.message}`
+        );
       }
     }
   }
 
   await context.sync();
-  console.log("✅ Horizontal template population completed successfully");
+  console.log(
+    "✅ Horizontal template population completed successfully using LLM valueLocation suggestions"
+  );
 }
 
 /**
@@ -281,25 +282,39 @@ async function populateVerticalTemplate(context, validatedData, templateRange, t
   console.log("🔍 PopulateVerticalTemplate Debug Info:");
   console.log("Data to populate:", dataRow);
 
-  // PROGRAMMATICALLY determine where values should go (ignore LLM's valueLocation)
-  // For vertical templates, values typically go to the RIGHT of field names
+  // NEW APPROACH: Use LLM's valueLocation suggestions with validation
+  console.log("🎯 Using LLM's valueLocation suggestions for vertical template");
 
   const cellUpdates = [];
 
   templateStructure.fields.forEach((field, index) => {
     const value = dataRow[field.fieldName];
     if (value !== undefined && value !== null) {
-      // Use field location and ALWAYS place value to the right (+1 column)
-      const fieldRow = field.fieldLocation.row;
-      const fieldCol = field.fieldLocation.col;
+      // Validate that the LLM provided different locations for field and value
+      if (
+        field.fieldLocation.row === field.valueLocation.row &&
+        field.fieldLocation.col === field.valueLocation.col
+      ) {
+        console.error(
+          `❌ CRITICAL: Field "${field.fieldName}" has identical fieldLocation and valueLocation!`
+        );
+        throw new Error(
+          `Field "${field.fieldName}" has invalid LLM configuration: valueLocation cannot be identical to fieldLocation. This would overwrite the field name.`
+        );
+      }
 
-      // PROGRAMMATIC APPROACH: Always place values one column to the right of field names
-      const targetRow = templateRange.rowIndex + fieldRow;
-      const targetCol = templateRange.columnIndex + fieldCol + 1;
+      // Use LLM's suggested value location (convert relative to absolute)
+      const targetRow = templateRange.rowIndex + field.valueLocation.row;
+      const targetCol = templateRange.columnIndex + field.valueLocation.col;
 
       console.log(`Field ${index}: "${field.fieldName}"`);
-      console.log(`  - Field location: template row ${fieldRow}, col ${fieldCol}`);
-      console.log(`  - Value placement: absolute position (${targetRow}, ${targetCol})`);
+      console.log(
+        `  - LLM fieldLocation: {row:${field.fieldLocation.row}, col:${field.fieldLocation.col}} (relative)`
+      );
+      console.log(
+        `  - LLM valueLocation: {row:${field.valueLocation.row}, col:${field.valueLocation.col}} (relative)`
+      );
+      console.log(`  - Absolute value position: (${targetRow}, ${targetCol})`);
       console.log(`  - Excel address: ${String.fromCharCode(65 + targetCol)}${targetRow + 1}`);
       console.log(`  - Value: "${value}"`);
 
@@ -316,16 +331,17 @@ async function populateVerticalTemplate(context, validatedData, templateRange, t
         col: targetCol,
         value: sanitizeValueForExcel(value),
         excelAddress: `${String.fromCharCode(65 + targetCol)}${targetRow + 1}`,
+        source: "LLM",
       });
     } else {
       console.log(`Field "${field.fieldName}" skipped - no value found in data`);
     }
   });
 
-  console.log("📝 Cell Updates to Apply:", cellUpdates.length);
+  console.log("📝 LLM-guided Cell Updates to Apply:", cellUpdates.length);
   cellUpdates.forEach((update, index) => {
     console.log(
-      `Update ${index}: ${update.fieldName} → ${update.excelAddress} = "${update.value}"`
+      `Update ${index}: ${update.fieldName} → ${update.excelAddress} = "${update.value}" (${update.source})`
     );
   });
 
@@ -335,7 +351,7 @@ async function populateVerticalTemplate(context, validatedData, templateRange, t
       const cell = templateRange.worksheet.getCell(update.row, update.col);
       cell.values = [[update.value]];
       console.log(
-        `✅ Updated ${update.excelAddress} with: "${update.value}" (field: ${update.fieldName})`
+        `✅ Updated ${update.excelAddress} with: "${update.value}" (field: ${update.fieldName}, source: ${update.source})`
       );
     } catch (error) {
       console.error(
@@ -343,14 +359,16 @@ async function populateVerticalTemplate(context, validatedData, templateRange, t
         error
       );
       throw new Error(
-        `Failed to populate field "${update.fieldName}" at ${update.excelAddress}: ${error.message}`
+        `Failed to populate field "${update.fieldName}" at LLM-suggested location ${update.excelAddress}: ${error.message}`
       );
     }
   }
 
   await context.sync();
 
-  console.log("✅ Vertical template population completed successfully");
+  console.log(
+    "✅ Vertical template population completed successfully using LLM valueLocation suggestions"
+  );
 }
 
 /**
