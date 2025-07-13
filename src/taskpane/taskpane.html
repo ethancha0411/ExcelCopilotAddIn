@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Excel Copilot Add-in</title>
+    <title>Excel Template Populator</title>
 
     <!-- Office JavaScript API -->
     <script
@@ -24,72 +24,151 @@
 
   <body class="ms-font-m ms-Fabric">
     <main id="app-body" class="ms-welcome__main">
-      <h2 class="ms-font-xl">Data Verifier</h2>
-      <p class="ms-font-l">Verify selected Excel data against a PDF document.</p>
+      <h2 class="ms-font-xl">Excel Copilot</h2>
+      <p class="ms-font-l">Choose your operation:</p>
 
+      <!-- Mode Selector -->
+      <div class="ms-Grid" dir="ltr" style="margin-bottom: 20px">
+        <div class="ms-Grid-row">
+          <div class="ms-Grid-col ms-sm6">
+            <label class="ms-Label">
+              <input
+                type="radio"
+                name="mode"
+                value="population"
+                checked
+                style="margin-right: 8px"
+              />
+              Populate Template
+            </label>
+          </div>
+          <div class="ms-Grid-col ms-sm6">
+            <label class="ms-Label">
+              <input type="radio" name="mode" value="validation" style="margin-right: 8px" />
+              Validate Data
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Population Mode Instructions -->
+      <div id="population-instructions" class="ms-font-m" style="color: #333; margin-bottom: 15px">
+        <b>Template Population Instructions:</b>
+        <ol>
+          <li>Select the table area in your sheet, including the headers.</li>
+          <li>Upload a document (PDF, DOCX, PNG, JPG).</li>
+          <li>Click "Run" to extract and map data.</li>
+        </ol>
+      </div>
+
+      <!-- Validation Mode Instructions -->
+      <div
+        id="validation-instructions"
+        class="ms-font-m"
+        style="color: #333; margin-bottom: 15px; display: none"
+      >
+        <b>Data Validation Instructions:</b>
+        <ol>
+          <li>Select the data range in your sheet that you want to validate.</li>
+          <li>Upload a PDF document to compare against.</li>
+          <li>Click "Run" to validate your data.</li>
+        </ol>
+      </div>
+
+      <!-- Common API Key Input -->
       <div class="ms-Grid" dir="ltr">
         <div class="ms-Grid-row" style="margin-bottom: 10px">
           <div class="ms-Grid-col ms-sm12">
             <div class="ms-TextField">
-              <label class="ms-Label">Gemini API Key (optional if set in .env file)</label>
+              <label class="ms-Label">Gemini API Key</label>
               <input
                 class="ms-TextField-field"
                 type="password"
                 id="api-key"
-                placeholder="Enter your API key or leave blank to use .env file"
+                placeholder="Enter your Gemini API key"
               />
-              <div class="ms-font-s" style="color: #666; margin-top: 4px">
-                Tip: Set GEMINI_API_KEY in your .env file to avoid entering it each time
+            </div>
+          </div>
+        </div>
+
+        <!-- Population Mode Section -->
+        <div id="population-section">
+          <div class="ms-Grid-row" style="margin-bottom: 10px">
+            <div class="ms-Grid-col ms-sm12">
+              <div class="ms-TextField ms-TextField--multiline">
+                <label class="ms-Label">Extraction Prompt (Optional)</label>
+                <textarea
+                  class="ms-TextField-field"
+                  id="extract-prompt"
+                  rows="4"
+                  placeholder="Default prompt is optimized for structured data extraction. Add specific instructions here if needed."
+                ></textarea>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="ms-Grid-row" style="margin-bottom: 10px">
-          <div class="ms-Grid-col ms-sm12">
-            <div class="ms-TextField ms-TextField--multiline">
-              <label class="ms-Label">1. PDF Parsing Prompt</label>
-              <textarea
-                class="ms-TextField-field"
-                id="parse-prompt"
-                rows="3"
-                placeholder="e.g., Extract invoice number, date, and total."
-              ></textarea>
+          <div class="ms-Grid-row" style="margin-bottom: 10px">
+            <div class="ms-Grid-col ms-sm12">
+              <label class="ms-Label">Source Document</label>
+              <input
+                type="file"
+                id="document-upload"
+                class="ms-Button"
+                accept=".pdf,.docx,.png,.jpg,.jpeg"
+              />
             </div>
           </div>
         </div>
 
-        <div class="ms-Grid-row" style="margin-bottom: 10px">
-          <div class="ms-Grid-col ms-sm12">
-            <div class="ms-TextField ms-TextField--multiline">
-              <label class="ms-Label">2. Comparison Prompt</label>
-              <textarea
-                class="ms-TextField-field"
-                id="compare-prompt"
-                rows="3"
-                placeholder="e.g., Compare the extracted invoice total with the 'Amount' column in my selection."
-              ></textarea>
+        <!-- Validation Mode Section -->
+        <div id="validation-section" style="display: none">
+          <div class="ms-Grid-row" style="margin-bottom: 10px">
+            <div class="ms-Grid-col ms-sm12">
+              <div class="ms-TextField ms-TextField--multiline">
+                <label class="ms-Label">Parse Prompt (Optional)</label>
+                <textarea
+                  class="ms-TextField-field"
+                  id="parse-prompt"
+                  rows="4"
+                  placeholder="Default prompt is optimized for document parsing. Add specific instructions here if needed."
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="ms-Grid-row" style="margin-bottom: 10px">
+            <div class="ms-Grid-col ms-sm12">
+              <div class="ms-TextField ms-TextField--multiline">
+                <label class="ms-Label">Compare Prompt (Optional)</label>
+                <textarea
+                  class="ms-TextField-field"
+                  id="compare-prompt"
+                  rows="4"
+                  placeholder="Default prompt is optimized for data comparison. Add specific instructions here if needed."
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="ms-Grid-row" style="margin-bottom: 10px">
+            <div class="ms-Grid-col ms-sm12">
+              <label class="ms-Label">PDF Document</label>
+              <input type="file" id="pdf-upload" class="ms-Button" accept=".pdf" />
             </div>
           </div>
         </div>
 
-        <div class="ms-Grid-row" style="margin-bottom: 10px">
-          <div class="ms-Grid-col ms-sm12">
-            <label class="ms-Label">PDF File</label>
-            <input type="file" id="pdf-upload" accept="application/pdf" class="ms-Button" />
-          </div>
-        </div>
-
+        <!-- Common Run Button -->
         <div class="ms-Grid-row">
           <div class="ms-Grid-col ms-sm12">
-            <button id="verify-button" class="ms-Button ms-Button--primary">
-              <span class="ms-Button-label">Verify Selected Data</span>
+            <button id="run-button" class="ms-Button ms-Button--primary">
+              <span class="ms-Button-label">Run</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div id="status" style="margin-top: 10px"></div>
+      <div id="status" style="margin-top: 15px; font-weight: bold"></div>
     </main>
   </body>
 </html>
