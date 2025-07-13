@@ -3,6 +3,8 @@
 const devCerts = require("office-addin-dev-certs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
+const webpack = require("webpack");
 
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://your-production-domain.com/"; // TODO: Update this to your actual production deployment location
@@ -26,6 +28,9 @@ module.exports = async (env, options) => {
     },
     resolve: {
       extensions: [".html", ".js"],
+      fallback: {
+        process: require.resolve("process/browser"),
+      },
     },
     module: {
       rules: [
@@ -51,6 +56,15 @@ module.exports = async (env, options) => {
       ],
     },
     plugins: [
+      new Dotenv({
+        path: "./.env", // Path to .env file
+        safe: false, // Don't require .env file to exist
+        systemvars: true, // Load system environment variables as well
+        silent: true, // Hide any errors
+      }),
+      new webpack.ProvidePlugin({
+        process: "process/browser", // Provide process object for browser
+      }),
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
         template: "./src/taskpane/taskpane.html",
