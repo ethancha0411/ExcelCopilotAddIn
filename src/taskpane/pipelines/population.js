@@ -6,7 +6,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { extractDataFromDocument, mapDataToTemplate } from "../services/gemini.service.js";
-import { analyzeTemplate, populateTemplate } from "../services/excel.service.js";
+import { analyzeTemplateSmart, populateTemplate } from "../services/excel.service.js";
 import { updateState, getState } from "../state.js";
 import { updateStatus } from "../components/ui.js";
 
@@ -27,22 +27,61 @@ export async function executePopulation(apiKey, documentFile, userPrompt) {
     // --- 1. Analyze Excel Template with LLM ---
     updateStatus("Step 1: Analyzing Excel template structure with AI...");
     await Excel.run(async (context) => {
-      const { headers, templateRange, templateStructure } = await analyzeTemplate(context, genAI);
-      updateState({
-        templateHeaders: headers,
-        templateRangeAddress: templateRange.address,
-        templateStructure: templateStructure,
-      });
+      try {
+        const { headers, templateRange, templateStructure, wasExpanded, originalAddress } =
+          await analyzeTemplateSmart(context, genAI);
 
-      console.log("Template analysis complete:", {
-        orientation: templateStructure.orientation,
-        fieldCount: templateStructure.fields.length,
-        headers: headers,
-      });
+        // Provide user feedback if range was expanded
+        if (wasExpanded) {
+          updateStatus(
+            `Step 1: Single cell selection (${originalAddress}) expanded to template range (${templateRange.address})`
+          );
+          console.log(`Smart range expansion: ${originalAddress} → ${templateRange.address}`);
+        }
 
-      updateStatus(
-        `Template analyzed: ${templateStructure.orientation} format with ${templateStructure.fields.length} fields`
-      );
+        // Validate template structure before proceeding
+        if (
+          !templateStructure ||
+          !templateStructure.fields ||
+          templateStructure.fields.length === 0
+        ) {
+          throw new Error("Template analysis failed: No fields detected in template structure");
+        }
+
+        // Check if we have a reasonable template range
+        if (templateRange.rowCount === 1 && templateRange.columnCount > 15) {
+          console.log(
+            "⚠️  WARNING: Template range appears to be header-only despite expansion attempts"
+          );
+          console.log("This may cause bounds validation errors during population");
+        }
+
+        updateState({
+          templateHeaders: headers,
+          templateRangeAddress: templateRange.address,
+          templateStructure: templateStructure,
+          wasRangeExpanded: wasExpanded,
+          originalRangeAddress: originalAddress,
+        });
+
+        console.log("Template analysis complete:", {
+          orientation: templateStructure.orientation,
+          fieldCount: templateStructure.fields.length,
+          headers: headers,
+          wasExpanded: wasExpanded,
+          originalRange: originalAddress,
+          expandedRange: templateRange.address,
+          templateDimensions: `${templateRange.rowCount}×${templateRange.columnCount}`,
+        });
+
+        updateStatus(
+          `Template analyzed: ${templateStructure.orientation} format with ${templateStructure.fields.length} fields${wasExpanded ? " (auto-expanded from single cell)" : ""}`
+        );
+      } catch (templateError) {
+        console.error("Template analysis failed:", templateError);
+        updateStatus(`Template analysis failed: ${templateError.message}`);
+        throw templateError;
+      }
     });
 
     // --- 2. Extract Data from Document ---
@@ -93,8 +132,20 @@ Ensure all values are properly typed (strings, numbers, dates, booleans).`;
       const templateRange = context.workbook.worksheets
         .getActiveWorksheet()
         .getRange(state.templateRangeAddress);
+
+      // Provide specific feedback based on template orientation
+      const orientation = state.templateStructure.orientation;
+      if (orientation === "vertical") {
+        updateStatus(
+          "Step 4: Populating vertical template (values placed to the right of field names)..."
+        );
+      } else {
+        updateStatus("Step 4: Populating horizontal template (values placed below headers)...");
+      }
+
       await populateTemplate(context, mappedData, templateRange, state.templateStructure);
-      updateStatus("Population complete!");
+
+      updateStatus(`Population complete! Data populated in ${orientation} template format.`);
     });
   } catch (error) {
     console.error("Template population failed:", error);

@@ -14,7 +14,10 @@ const appState = {
   extractedData: null,
   templateHeaders: null,
   templateRangeAddress: null,
+  templateStructure: null,
   mappedData: null,
+  wasRangeExpanded: false,
+  originalRangeAddress: null,
 
   // Data Validation state
   pdfData: null,
@@ -68,7 +71,10 @@ export function getPipelineState(pipeline) {
       extractedData: appState.extractedData,
       templateHeaders: appState.templateHeaders,
       templateRangeAddress: appState.templateRangeAddress,
+      templateStructure: appState.templateStructure,
       mappedData: appState.mappedData,
+      wasRangeExpanded: appState.wasRangeExpanded,
+      originalRangeAddress: appState.originalRangeAddress,
     };
   } else if (pipeline === "validation") {
     return {
@@ -76,6 +82,8 @@ export function getPipelineState(pipeline) {
       excelData: appState.excelData,
       mismatches: appState.mismatches,
       selectedRangeAddress: appState.selectedRangeAddress,
+      wasRangeExpanded: appState.wasRangeExpanded,
+      originalRangeAddress: appState.originalRangeAddress,
     };
   }
   return {};

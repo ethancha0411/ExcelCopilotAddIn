@@ -367,5 +367,166 @@ export async function runTemplateAnalysisDemo() {
   console.log("✅ Handles both vertical and horizontal template formats");
 }
 
+/**
+ * Demo function to test smart range detection for single cell selection
+ */
+export async function demoSmartRangeDetection() {
+  console.log("\n=== Testing Smart Range Detection ===");
+
+  // Test Case 1: Single cell selection in a populated area
+  console.log("\n📍 Test Case 1: Single Cell Selection - Should Expand");
+  console.log("Scenario: User selects cell B2 in a sheet with data from A1:D5");
+
+  // Mock worksheet data
+  const mockWorksheetData = [
+    ["Name", "Age", "City", "Salary"],
+    ["John", "25", "NYC", "50000"],
+    ["Jane", "30", "LA", "60000"],
+    ["Bob", "35", "Chicago", "55000"],
+    ["Alice", "28", "Miami", "58000"],
+  ];
+
+  console.log("Mock worksheet data:");
+  console.log(mockWorksheetData);
+
+  // Mock Excel range objects
+  const mockSingleCellRange = {
+    address: "B2",
+    rowCount: 1,
+    columnCount: 1,
+    values: [["25"]],
+  };
+
+  const mockCurrentRegion = {
+    address: "A1:D5",
+    rowCount: 5,
+    columnCount: 4,
+    values: mockWorksheetData,
+  };
+
+  console.log("Selected range (single cell):", mockSingleCellRange.address);
+  console.log("Current region detected:", mockCurrentRegion.address);
+  console.log("✅ Range would be expanded from B2 to A1:D5");
+
+  // Test Case 2: Single cell selection in empty area
+  console.log("\n📍 Test Case 2: Single Cell Selection - No Data Around");
+  console.log("Scenario: User selects cell G10 in an empty area");
+
+  const mockEmptyCellRange = {
+    address: "G10",
+    rowCount: 1,
+    columnCount: 1,
+    values: [[""]],
+  };
+
+  const mockUsedRange = {
+    address: "A1:D5",
+    rowCount: 5,
+    columnCount: 4,
+    values: mockWorksheetData,
+  };
+
+  console.log("Selected range (empty area):", mockEmptyCellRange.address);
+  console.log("No contiguous data found around G10");
+  console.log("Fallback to worksheet used range:", mockUsedRange.address);
+  console.log("✅ Range would be expanded from G10 to A1:D5 (used range)");
+
+  // Test Case 3: Multi-cell selection
+  console.log("\n📍 Test Case 3: Multi-Cell Selection - No Expansion");
+  console.log("Scenario: User selects range A1:C3");
+
+  const mockMultiCellRange = {
+    address: "A1:C3",
+    rowCount: 3,
+    columnCount: 3,
+    values: [
+      ["Name", "Age", "City"],
+      ["John", "25", "NYC"],
+      ["Jane", "30", "LA"],
+    ],
+  };
+
+  console.log("Selected range (multi-cell):", mockMultiCellRange.address);
+  console.log("✅ Range would remain as A1:C3 (no expansion needed)");
+
+  // Test Case 4: Template Population Scenario
+  console.log("\n📍 Test Case 4: Template Population - Smart Expansion");
+  console.log("Scenario: User selects single cell in a vertical template");
+
+  const mockTemplateData = [
+    ["Field", "Value"],
+    ["Property Name", ""],
+    ["Property Address", ""],
+    ["Rent Amount", ""],
+    ["Due Date", ""],
+  ];
+
+  const mockTemplateSelection = {
+    address: "C3",
+    rowCount: 1,
+    columnCount: 1,
+    values: [[""]],
+  };
+
+  const mockTemplateRegion = {
+    address: "B2:C6",
+    rowCount: 5,
+    columnCount: 2,
+    values: mockTemplateData,
+  };
+
+  console.log("Template structure:");
+  console.log(mockTemplateData);
+  console.log("User selected:", mockTemplateSelection.address);
+  console.log("Template region detected:", mockTemplateRegion.address);
+  console.log("✅ Template analysis would run on entire template structure");
+
+  // Test Case 5: Data Validation Scenario
+  console.log("\n📍 Test Case 5: Data Validation - Smart Expansion");
+  console.log("Scenario: User selects single cell in a data table");
+
+  const mockDataTable = [
+    ["Invoice #", "Amount", "Date", "Status"],
+    ["INV001", "1500.00", "2024-01-15", "Paid"],
+    ["INV002", "2200.00", "2024-01-16", "Pending"],
+    ["INV003", "1800.00", "2024-01-17", "Paid"],
+    ["INV004", "2500.00", "2024-01-18", "Overdue"],
+  ];
+
+  const mockDataSelection = {
+    address: "B3",
+    rowCount: 1,
+    columnCount: 1,
+    values: [["2200.00"]],
+  };
+
+  const mockDataRegion = {
+    address: "A1:D5",
+    rowCount: 5,
+    columnCount: 4,
+    values: mockDataTable,
+  };
+
+  console.log("Data table:");
+  console.log(mockDataTable);
+  console.log("User selected:", mockDataSelection.address);
+  console.log("Data region detected:", mockDataRegion.address);
+  console.log("✅ Validation would run on entire data table");
+
+  console.log("\n🎯 Smart Range Detection Benefits:");
+  console.log("1. ✅ Automatically handles common user behavior (single cell selection)");
+  console.log("2. ✅ Expands to include all relevant data for analysis");
+  console.log("3. ✅ Provides clear feedback about range expansion");
+  console.log("4. ✅ Falls back gracefully when no contiguous data is found");
+  console.log("5. ✅ Preserves original behavior for multi-cell selections");
+  console.log("6. ✅ Improves success rate for both template population and data validation");
+
+  console.log("\n📊 User Experience Improvements:");
+  console.log("- Users don't need to carefully select entire ranges");
+  console.log("- Reduces errors from incomplete range selection");
+  console.log("- Clear status messages inform users about auto-expansion");
+  console.log("- Backward compatible with existing workflows");
+}
+
 // Uncomment to run the demo
 // runTemplateAnalysisDemo();

@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { parseDocument, compareData } from "../services/gemini.service.js";
 import {
   writeDataToNewSheet,
-  getSelectedRangeData,
+  getSelectedRangeDataSmart,
   highlightMismatches,
 } from "../services/excel.service.js";
 import { updateState } from "../state.js";
@@ -67,22 +67,49 @@ The JSON should be easily comparable with Excel spreadsheet data.`;
       updateStatus("Step 2: Parsed data stored.");
 
       // --- 3. Get selected data from Excel ---
-      const { values: excelData, address: selectedRangeAddress } =
-        await getSelectedRangeData(context);
+      updateStatus("Step 3: Getting selected data from Excel...");
+      const {
+        values: excelData,
+        address: selectedRangeAddress,
+        wasExpanded,
+        originalAddress,
+      } = await getSelectedRangeDataSmart(context);
+
+      // Provide user feedback if range was expanded
+      if (wasExpanded) {
+        updateStatus(
+          `Step 3: Single cell selection (${originalAddress}) expanded to data range (${selectedRangeAddress})`
+        );
+        console.log(`Smart range expansion: ${originalAddress} → ${selectedRangeAddress}`);
+      }
+
       updateState({
         excelData,
         selectedRangeAddress,
+        wasRangeExpanded: wasExpanded,
+        originalRangeAddress: originalAddress,
       });
 
+      console.log("Excel data retrieved:", {
+        dataShape: `${excelData.length} rows × ${excelData[0]?.length || 0} columns`,
+        range: selectedRangeAddress,
+        wasExpanded: wasExpanded,
+        originalRange: originalAddress,
+      });
+
+      updateStatus(
+        `Step 3: Excel data retrieved (${excelData.length} rows × ${excelData[0]?.length || 0} columns)${wasExpanded ? " (auto-expanded from single cell)" : ""}`
+      );
+
       // --- 4. Compare PDF data with Excel data with Gemini ---
-      updateStatus("Step 3: Comparing data with Gemini...");
+      updateStatus("Step 4: Comparing data with Gemini...");
       const mismatches = await compareData(genAI, pdfData, excelData, finalComparePrompt);
       updateState({ mismatches });
-      updateStatus("Step 3: Comparison complete.");
+      updateStatus("Step 4: Comparison complete.");
 
       // --- 5. Highlight mismatched cells and add comments ---
       if (mismatches && mismatches.length > 0) {
-        updateStatus(`Step 4: Highlighting ${mismatches.length} mismatch(es)...`);
+        updateStatus(`Step 5: Highlighting ${mismatches.length} mismatch(es)...`);
         await highlightMismatches(context, mismatches, selectedRangeAddress);
         updateStatus(
           `Validation complete. Found ${mismatches.length} mismatch(es). Hover over red cells to see expected values.`

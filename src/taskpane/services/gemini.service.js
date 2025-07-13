@@ -447,8 +447,19 @@ Analyze the template carefully and provide comprehensive field information with 
   const maxRow = templateData.length - 1;
   const maxCol = templateData[0]?.length - 1 || 0;
 
+  console.log("Template bounds validation:");
+  console.log(
+    `Template data dimensions: ${templateData.length} rows × ${templateData[0]?.length || 0} columns`
+  );
+  console.log(`Valid bounds: [0-${maxRow}, 0-${maxCol}]`);
+  console.log("Template data preview:", templateData.slice(0, 3));
+
   parsedResponse.fields.forEach((field, index) => {
     const { fieldLocation, valueLocation } = field;
+
+    console.log(`Validating field ${index} (${field.fieldName}):`);
+    console.log(`  fieldLocation: {row:${fieldLocation.row}, col:${fieldLocation.col}}`);
+    console.log(`  valueLocation: {row:${valueLocation.row}, col:${valueLocation.col}}`);
 
     // Validate field location
     if (
@@ -457,8 +468,11 @@ Analyze the template carefully and provide comprehensive field information with 
       fieldLocation.col < 0 ||
       fieldLocation.col > maxCol
     ) {
+      console.error(`Field location validation failed for field ${index} (${field.fieldName})`);
+      console.error(`Template data:`, templateData);
+      console.error(`Template address: ${templateAddress}`);
       throw new Error(
-        `Field ${index} (${field.fieldName}) has invalid fieldLocation: {row:${fieldLocation.row}, col:${fieldLocation.col}}. Must be within bounds [0-${maxRow}, 0-${maxCol}]`
+        `Field ${index} (${field.fieldName}) has invalid fieldLocation: {row:${fieldLocation.row}, col:${fieldLocation.col}}. Must be within bounds [0-${maxRow}, 0-${maxCol}]. Template data has ${templateData.length} rows and ${templateData[0]?.length || 0} columns.`
       );
     }
 
@@ -469,8 +483,11 @@ Analyze the template carefully and provide comprehensive field information with 
       valueLocation.col < 0 ||
       valueLocation.col > maxCol
     ) {
+      console.error(`Value location validation failed for field ${index} (${field.fieldName})`);
+      console.error(`Template data:`, templateData);
+      console.error(`Template address: ${templateAddress}`);
       throw new Error(
-        `Field ${index} (${field.fieldName}) has invalid valueLocation: {row:${valueLocation.row}, col:${valueLocation.col}}. Must be within bounds [0-${maxRow}, 0-${maxCol}]`
+        `Field ${index} (${field.fieldName}) has invalid valueLocation: {row:${valueLocation.row}, col:${valueLocation.col}}. Must be within bounds [0-${maxRow}, 0-${maxCol}]. Template data has ${templateData.length} rows and ${templateData[0]?.length || 0} columns.`
       );
     }
   });
